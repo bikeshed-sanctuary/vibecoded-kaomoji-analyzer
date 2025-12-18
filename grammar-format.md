@@ -162,13 +162,13 @@ Matches input against a regular expression pattern. Returns 1 for match, 0 for n
 
 ### `rule:string-similarity`
 
-Matches patterns using fuzzy string comparison. Returns a score based on Levenshtein distance.
+Matches patterns using fuzzy string comparison. Returns a score based on Levenshtein distance, or position-based matching when using `ignoreCharacter`.
 
 ```javascript
 {
     $: 'rule:string-similarity',
-    to: '>_<',
-    neutralCharacter: '_',
+    to: '> <',
+    ignoreCharacter: ' ',
     mirror: true
 }
 ```
@@ -177,8 +177,15 @@ Matches patterns using fuzzy string comparison. Returns a score based on Levensh
 |----------|------|-------------|
 | `$` | `'rule:string-similarity'` | Rule type identifier |
 | `to` | `string` | Target pattern to match against |
-| `neutralCharacter` | `string` | Optional. Treated as wildcard in pattern matching |
+| `ignoreCharacter` | `string` | Optional. Positions with this character are spacers that don't count in comparison |
 | `mirror` | `boolean` | Optional. Also test horizontally mirrored pattern |
+
+**ignoreCharacter example:**
+
+Pattern `> <` with `ignoreCharacter: ' '` means "match `>` at position 0, ignore position 1, match `<` at position 2":
+- Input `>_<` → positions 0 and 2 match → **100%**
+- Input `>.<` → positions 0 and 2 match → **100%**
+- Input `<_<` → position 0 doesn't match, position 2 matches → **50%**
 
 ---
 
@@ -223,13 +230,20 @@ export default {
         frustration: {
             $: 'rule:balance',
             children: [
-                { $: 'rule:string-similarity', neutralCharacter: '_', to: '>_<' },
-                { $: 'rule:string-similarity', mirror: true, neutralCharacter: '_', to: '<_<' },
+                // Eye pattern: > < eyes, any mouth (space = ignored position)
+                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '> <' },
+                // Specific exact match
+                { $: 'rule:string-similarity', to: '>_<' },
             ]
         },
         'soft-crying': {
             $: 'rule:balance',
             children: [
+                // Eye pattern: ; eyes, any mouth
+                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '; ;' },
+                // Mouth pattern: w mouth, any eyes
+                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' w ' },
+                // Specific combinations
                 { $: 'rule:string-similarity', to: ';w;' },
                 { $: 'rule:string-similarity', to: ';_;' },
             ]
@@ -241,5 +255,5 @@ export default {
 This defines:
 - **Structure**: A kaomoji is a sequence of `left eye` + `mouth` + `right eye`
 - **Detection**: Input is valid if it matches the eye-mouth-eye pattern
-- **Meanings**: "frustration" matches `>_<` variants; "soft-crying" matches `;w;` and `;_;`
+- **Meanings**: Rules can target eyes (`> <`), mouth (` w `), or specific combinations (`>_<`)
 

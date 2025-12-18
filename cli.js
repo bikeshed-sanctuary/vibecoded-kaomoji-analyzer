@@ -53,15 +53,15 @@ const ruleHandlers = {
 
     'rule:string-similarity': (rule, input) => {
         const target = rule.to;
-        const neutral = rule.neutralCharacter || '';
+        const ignore = rule.ignoreCharacter || null;
         
         // Direct similarity
-        let score = stringSimilarity(input, target, neutral);
+        let score = stringSimilarity(input, target, ignore);
         
         // If mirror is enabled, also check mirrored version
         if (rule.mirror) {
             const mirrored = mirrorString(target);
-            const mirrorScore = stringSimilarity(input, mirrored, neutral);
+            const mirrorScore = stringSimilarity(input, mirrored, ignore);
             score = Math.max(score, mirrorScore);
         }
         
@@ -75,31 +75,62 @@ const ruleHandlers = {
 
 /**
  * Computes similarity between two strings.
- * neutralCharacter is treated as a wildcard that matches any single character.
+ * 
+ * ignoreCharacter: positions in the target pattern marked with this character
+ * are spacers that don't count toward the comparison. Only the non-ignored
+ * positions are compared.
+ * 
+ * Example: pattern `> <` with ignoreCharacter ` `:
+ *   - Significant chars: `>` at pos 0, `<` at pos 2
+ *   - Input `>_<`: pos 0 matches, pos 2 matches → 100%
+ *   - Input `>.<`: pos 0 matches, pos 2 matches → 100%
+ *   - Input `<_<`: pos 0 doesn't match, pos 2 matches → 50%
  */
-function stringSimilarity(input, target, neutralCharacter) {
-    // Normalize: remove spaces
-    const a = input.replace(/\s/g, '');
-    const b = target.replace(/\s/g, '');
+function stringSimilarity(input, target, ignoreCharacter) {
+    if (input === target) return 1;
+    if (input.length === 0 || target.length === 0) return 0;
     
-    if (a === b) return 1;
-    if (a.length === 0 || b.length === 0) return 0;
-    
-    // Check for pattern match with neutral character as wildcard
-    if (neutralCharacter && a.length === b.length) {
+    // If we have an ignoreCharacter, do position-based matching
+    if (ignoreCharacter !== null) {
+        // For patterns with ignoreCharacter, lengths should match
+        if (input.length !== target.length) {
+            // Fall back to Levenshtein for length mismatch
+            const distance = levenshtein(input, target.replace(new RegExp(escapeRegex(ignoreCharacter), 'g'), ''));
+            const maxLen = Math.max(input.length, target.length);
+            return 1 - (distance / maxLen);
+        }
+        
         let matches = 0;
-        for (let i = 0; i < a.length; i++) {
-            if (a[i] === b[i] || b[i] === neutralCharacter) {
+        let significant = 0;
+        
+        for (let i = 0; i < target.length; i++) {
+            if (target[i] === ignoreCharacter) {
+                // This position is a spacer, don't count it
+                continue;
+            }
+            significant++;
+            if (input[i] === target[i]) {
                 matches++;
             }
         }
-        return matches / a.length;
+        
+        // If all positions were ignored, it's a match
+        if (significant === 0) return 1;
+        
+        return matches / significant;
     }
     
-    // Levenshtein-based similarity
-    const distance = levenshtein(a, b);
-    const maxLen = Math.max(a.length, b.length);
+    // No ignoreCharacter: use Levenshtein-based similarity
+    const distance = levenshtein(input, target);
+    const maxLen = Math.max(input.length, target.length);
     return 1 - (distance / maxLen);
+}
+
+/**
+ * Escape special regex characters in a string.
+ */
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
