@@ -28,6 +28,7 @@ A grammar specification is a JavaScript object with the following shape:
     name: "...",
     description: "...",
     grammar: { /* structural rules */ },
+    detection: { /* rules for recognizing valid input */ },
     meanings: { /* semantic rules */ }
 }
 ```
@@ -48,6 +49,7 @@ Root container for a complete grammar specification.
 | `name` | `string` | Grammar name |
 | `description` | `string` | Human-readable description |
 | `grammar` | `object` | Structural rule definitions |
+| `detection` | `object` | Optional. Rules for determining if input matches this grammar |
 | `meanings` | `object` | Semantic rule definitions |
 
 ### `sequence`
@@ -92,7 +94,8 @@ Terminal node representing an actual value.
 {
     $: 'value',
     programmingType: 'string',
-    conceptualType: 'rune'
+    conceptualType: 'rune',
+    variants: ['a', 'b', 'c']
 }
 ```
 
@@ -101,16 +104,17 @@ Terminal node representing an actual value.
 | `$` | `'value'` | Node type identifier |
 | `programmingType` | `string` | The programming language type |
 | `conceptualType` | `string` | The semantic/conceptual type |
+| `variants` | `array` | Optional. List of valid values for this terminal |
 
 ---
 
 ## Rule Types
 
-Rules in the `meanings` section use the `rule:` prefix to declare their type.
+Rules in the `meanings` and `detection` sections use the `rule:` prefix to declare their type. All rules return a score between 0 and 1.
 
 ### `rule:balance`
 
-Combines multiple child rules, balancing their weights to produce a composite score.
+Combines multiple child rules, returning the maximum score among them.
 
 ```javascript
 {
@@ -122,11 +126,43 @@ Combines multiple child rules, balancing their weights to produce a composite sc
 | Property | Type | Description |
 |----------|------|-------------|
 | `$` | `'rule:balance'` | Rule type identifier |
-| `children` | `array` | Child rules to combine |
+| `children` | `array` | Child rules to combine (returns max score) |
+
+### `rule:any`
+
+Returns 1 if any child rule returns a perfect match (score of 1), otherwise 0. Useful for detection rules.
+
+```javascript
+{
+    $: 'rule:any',
+    children: [ /* child rules */ ]
+}
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$` | `'rule:any'` | Rule type identifier |
+| `children` | `array` | Child rules to test (returns 1 if any matches) |
+
+### `rule:regex`
+
+Matches input against a regular expression pattern. Returns 1 for match, 0 for no match.
+
+```javascript
+{
+    $: 'rule:regex',
+    pattern: '^[><][_\\.][><]$'
+}
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$` | `'rule:regex'` | Rule type identifier |
+| `pattern` | `string` | Regular expression pattern |
 
 ### `rule:string-similarity`
 
-Matches patterns using fuzzy string comparison.
+Matches patterns using fuzzy string comparison. Returns a score based on Levenshtein distance.
 
 ```javascript
 {
@@ -141,8 +177,8 @@ Matches patterns using fuzzy string comparison.
 |----------|------|-------------|
 | `$` | `'rule:string-similarity'` | Rule type identifier |
 | `to` | `string` | Target pattern to match against |
-| `neutralCharacter` | `string` | Baseline character for comparison |
-| `mirror` | `boolean` | Whether pattern can be horizontally mirrored |
+| `neutralCharacter` | `string` | Optional. Treated as wildcard in pattern matching |
+| `mirror` | `boolean` | Optional. Also test horizontally mirrored pattern |
 
 ---
 
@@ -168,7 +204,20 @@ export default {
             $: 'value',
             programmingType: 'string',
             conceptualType: 'rune',
+            variants: ['>', '<', ';', 'T', 'u', 'U', 'o', 'O', '^'],
         },
+        mouth: {
+            $: 'value',
+            programmingType: 'string',
+            conceptualType: 'rune',
+            variants: ['_', '.', 'w', 'W', 'o', 'O', '~'],
+        },
+    },
+    detection: {
+        $: 'rule:any',
+        children: [
+            { $: 'rule:regex', pattern: '^[><;TuUoO^][_\\.wWoO~][><;TuUoO^]$' },
+        ],
     },
     meanings: {
         frustration: {
@@ -178,11 +227,19 @@ export default {
                 { $: 'rule:string-similarity', mirror: true, neutralCharacter: '_', to: '<_<' },
             ]
         },
+        'soft-crying': {
+            $: 'rule:balance',
+            children: [
+                { $: 'rule:string-similarity', to: ';w;' },
+                { $: 'rule:string-similarity', to: ';_;' },
+            ]
+        },
     }
 };
 ```
 
 This defines:
 - **Structure**: A kaomoji is a sequence of `left eye` + `mouth` + `right eye`
-- **Meaning**: "frustration" matches patterns similar to `>_<` or its mirror `<_<`
+- **Detection**: Input is valid if it matches the eye-mouth-eye pattern
+- **Meanings**: "frustration" matches `>_<` variants; "soft-crying" matches `;w;` and `;_;`
 

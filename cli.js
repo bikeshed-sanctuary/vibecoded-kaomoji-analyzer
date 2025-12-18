@@ -29,6 +29,28 @@ const ruleHandlers = {
         return Math.max(...scores);
     },
 
+    'rule:any': (rule, input) => {
+        if (!rule.children || rule.children.length === 0) return 0;
+        
+        // Return 1 if any child matches, 0 otherwise
+        for (const child of rule.children) {
+            if (evaluateRule(child, input) >= 1) {
+                return 1;
+            }
+        }
+        return 0;
+    },
+
+    'rule:regex': (rule, input) => {
+        try {
+            const regex = new RegExp(rule.pattern);
+            return regex.test(input) ? 1 : 0;
+        } catch (e) {
+            console.warn(`Invalid regex pattern: ${rule.pattern}`);
+            return 0;
+        }
+    },
+
     'rule:string-similarity': (rule, input) => {
         const target = rule.to;
         const neutral = rule.neutralCharacter || '';
@@ -139,6 +161,18 @@ function mirrorString(str) {
 // ============================================================================
 
 /**
+ * Checks if input matches a grammar's detection rules.
+ * Returns confidence score between 0 and 1.
+ */
+function detect(grammar, input) {
+    if (!grammar.detection) {
+        // No detection rules: assume valid if it has any meaning score
+        return null;
+    }
+    return evaluateRule(grammar.detection, input);
+}
+
+/**
  * Analyzes an input against a grammar's meanings.
  * Returns an object mapping meaning names to confidence scores.
  */
@@ -157,6 +191,8 @@ function analyze(grammar, input) {
 // CLI Interface
 // ============================================================================
 
+const SCORE_THRESHOLD = 0.5; // Only show meanings above this score
+
 function formatScore(score) {
     const percentage = (score * 100).toFixed(1);
     const barLength = Math.round(score * 20);
@@ -164,20 +200,47 @@ function formatScore(score) {
     return `${bar} ${percentage}%`;
 }
 
-function printAnalysis(input, results) {
+function formatDetection(isKaomoji) {
+    if (isKaomoji === null) return '  (no detection rules)';
+    return isKaomoji ? '  ✓ Valid kaomoji' : '  ✗ Not recognized as kaomoji';
+}
+
+function printAnalysis(grammar, input, detection, results) {
     console.log();
-    console.log(`  Input: ${input}`);
-    console.log('  ─'.repeat(20));
+    console.log(`  ┌─ ${grammar.name} ─────────────────────────────`);
+    console.log(`  │  Input: ${input}`);
+    console.log(`  │  ${formatDetection(detection)}`);
+    console.log('  ├────────────────────────────────────────');
     
-    const sorted = Object.entries(results).sort((a, b) => b[1] - a[1]);
+    const sorted = Object.entries(results)
+        .filter(([, score]) => score >= SCORE_THRESHOLD)
+        .sort((a, b) => b[1] - a[1]);
     
     if (sorted.length === 0) {
-        console.log('  No meanings defined in grammar.');
+        console.log('  │  No strong matches found.');
     } else {
         for (const [name, score] of sorted) {
-            console.log(`  ${name.padEnd(15)} ${formatScore(score)}`);
+            console.log(`  │  ${name.padEnd(16)} ${formatScore(score)}`);
         }
     }
+    
+    // Show top meanings below threshold if nothing matched
+    if (sorted.length === 0) {
+        const weak = Object.entries(results)
+            .filter(([, score]) => score > 0 && score < SCORE_THRESHOLD)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+        
+        if (weak.length > 0) {
+            console.log('  │');
+            console.log('  │  Weak matches:');
+            for (const [name, score] of weak) {
+                console.log(`  │  ${name.padEnd(16)} ${formatScore(score)}`);
+            }
+        }
+    }
+    
+    console.log('  └────────────────────────────────────────');
     console.log();
 }
 
@@ -190,9 +253,12 @@ function printHelp() {
     :quit       Exit
 
   Examples:
-    >_<         Analyze frustration kaomoji
-    ;w;         Analyze crying kaomoji
-    OwO         Analyze surprised kaomoji
+    >_<         Frustration
+    ;w;         Soft crying
+    T_T         Intense crying
+    OwO         Surprise / curiosity
+    UwU         Affection
+    ^_^         Contentment
 `);
 }
 
@@ -252,8 +318,9 @@ async function main() {
             
             // Analyze against all grammars
             for (const grammar of grammars) {
+                const detection = detect(grammar, trimmed);
                 const results = analyze(grammar, trimmed);
-                printAnalysis(trimmed, results);
+                printAnalysis(grammar, trimmed, detection, results);
             }
             
             prompt();
@@ -264,4 +331,3 @@ async function main() {
 }
 
 main();
-
