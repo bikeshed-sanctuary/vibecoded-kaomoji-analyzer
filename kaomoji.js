@@ -55,32 +55,33 @@ export default {
         frustration: {
             $: 'rule:balance',
             children: [
-                // Eye patterns (any mouth)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '> <' },
-                { $: 'rule:string-similarity', mirror: true, ignoreCharacter: ' ', to: '< <' },
-                { $: 'rule:string-similarity', mirror: true, ignoreCharacter: ' ', to: '> >' },
+                // Eye patterns (high weight - eyes are primary indicator)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '> <' } },
+                { weight: 0.8, rule: { $: 'rule:string-similarity', mirror: true, ignoreCharacter: ' ', to: '< <' } },
+                { weight: 0.8, rule: { $: 'rule:string-similarity', mirror: true, ignoreCharacter: ' ', to: '> >' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: '>.<' },
-                { $: 'rule:string-similarity', to: '>_<' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '>.<' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '>_<' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Crying / Sadness Spectrum
-        // Eyes: ; (tears), T (streaming tears)
+        // Eyes: ; (tears) — primary indicator
+        // Mouth: w — secondary (trembling, but more associated with affection)
         // ─────────────────────────────────────────────────────────────────
         'soft-crying': {
             $: 'rule:balance',
             children: [
-                // Eye pattern (crying eyes, any mouth)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '; ;' },
-                // Mouth pattern (trembling mouth, any eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' w ' },
+                // Eye pattern (high weight - crying eyes are primary)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '; ;' } },
+                // Mouth pattern (low weight - w is more about affection)
+                { weight: 0.3, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' w ' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: ';w;' },
-                { $: 'rule:string-similarity', to: ';_;' },
-                { $: 'rule:string-similarity', to: "';w;'" },
-                { $: 'rule:string-similarity', to: "';_;'" },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: ';w;' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: ';_;' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: "';w;'" } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: "';_;'" } },
             ]
         },
 
@@ -88,12 +89,12 @@ export default {
             $: 'rule:balance',
             children: [
                 // Eye pattern (T eyes = streaming tears)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'T T' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'T T' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: 'T_T' },
-                { $: 'rule:string-similarity', to: 'T.T' },
-                { $: 'rule:string-similarity', to: 'ToT' },
-                { $: 'rule:string-similarity', to: "T'T" },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'T_T' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'T.T' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'ToT' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: "T'T" } },
             ]
         },
 
@@ -101,177 +102,180 @@ export default {
             $: 'rule:balance',
             children: [
                 // Eye pattern (droopy u/n eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'u u' },
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'n n' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'u u' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'n n' } },
+                // Mouth pattern (low weight - _ is neutral)
+                { weight: 0.3, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' _ ' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: 'u_u' },
-                { $: 'rule:string-similarity', to: 'u.u' },
-                { $: 'rule:string-similarity', to: 'n_n' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'u_u' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'u.u' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'n_n' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Affection / Warmth
-        // Mouth: w (cat mouth, soft/cute)
+        // Mouth: w (cat mouth, soft/cute) — PRIMARY indicator
+        // Eyes: U (soft) — secondary
         // ─────────────────────────────────────────────────────────────────
         affection: {
             $: 'rule:balance',
             children: [
-                // Mouth pattern (w mouth = soft/cute, any eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' w ' },
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' W ' },
-                // Eye pattern (soft U eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'U U' },
+                // Mouth pattern (HIGH weight - w is the primary affection signal)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' w ' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' W ' } },
+                // Eye pattern (medium weight - U eyes are soft but secondary)
+                { weight: 0.7, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'U U' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: 'UwU' },
-                { $: 'rule:string-similarity', to: 'uwu' },
-                { $: 'rule:string-similarity', to: '^w^' },
-                { $: 'rule:string-similarity', to: '^_^' },
-                { $: 'rule:string-similarity', to: 'owo' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'UwU' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'uwu' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '^w^' } },
+                { weight: 0.6, rule: { $: 'rule:string-similarity', to: '^_^' } }, // less affectionate, more content
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'owo' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Surprise / Curiosity
-        // Eyes: O o (wide open)
-        // Mouth: o O (open mouth)
+        // Eyes: O o (wide open) — primary indicator
+        // Mouth: o O (open mouth) — reinforces surprise
         // ─────────────────────────────────────────────────────────────────
         surprise: {
             $: 'rule:balance',
             children: [
-                // Eye pattern (wide O/o eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'O O' },
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'o o' },
-                // Mouth pattern (open o mouth)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' o ' },
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' O ' },
+                // Eye pattern (high weight - wide eyes are primary)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'O O' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'o o' } },
+                // Mouth pattern (medium weight - open mouth reinforces)
+                { weight: 0.6, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' o ' } },
+                { weight: 0.6, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' O ' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: 'OwO' },
-                { $: 'rule:string-similarity', to: 'owo' },
-                { $: 'rule:string-similarity', to: 'OoO' },
-                { $: 'rule:string-similarity', to: 'o_o' },
-                { $: 'rule:string-similarity', to: 'O_O' },
-                { $: 'rule:string-similarity', to: 'o.o' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'OwO' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'owo' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'OoO' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'o_o' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'O_O' } },
+                { weight: 0.8, rule: { $: 'rule:string-similarity', to: 'o.o' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Excitement / Joy
-        // Eyes: ^ (happy squint), * (sparkling)
-        // Mouth: w (energetic), o (exclaiming)
+        // Eyes: ^ (happy squint), * (sparkling) — primary
+        // Mouth: w, o — secondary
         // ─────────────────────────────────────────────────────────────────
         excitement: {
             $: 'rule:balance',
             children: [
-                // Eye pattern (happy ^ eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '^ ^' },
-                // Eye pattern (sparkling * eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '* *' },
-                // Mouth pattern (energetic w)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' w ' },
-                // Mouth pattern (exclaiming o)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' o ' },
+                // Eye pattern (high weight - happy eyes are primary)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '^ ^' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '* *' } },
+                // Mouth pattern (lower weight - shared with other meanings)
+                { weight: 0.4, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' w ' } },
+                { weight: 0.5, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' o ' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: '>w<' },
-                { $: 'rule:string-similarity', to: '^w^' },
-                { $: 'rule:string-similarity', to: '^o^' },
-                { $: 'rule:string-similarity', to: '*w*' },
-                { $: 'rule:string-similarity', to: '*o*' },
-                { $: 'rule:string-similarity', to: '>.<' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '>w<' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '^w^' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '^o^' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '*w*' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '*o*' } },
+                { weight: 0.8, rule: { $: 'rule:string-similarity', to: '>.<' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Contentment / Calm
-        // Eyes: ^ (relaxed), = - (closed)
-        // Mouth: _ (neutral/relaxed)
+        // Eyes: ^ (relaxed), = - (closed) — primary
+        // Mouth: _ (neutral/relaxed) — reinforces calm
         // ─────────────────────────────────────────────────────────────────
         contentment: {
             $: 'rule:balance',
             children: [
-                // Eye patterns (relaxed/closed eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '^ ^' },
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '= =' },
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '- -' },
-                // Mouth pattern (neutral _ mouth)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' _ ' },
+                // Eye patterns (high weight - relaxed eyes are primary)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '^ ^' } },
+                { weight: 0.8, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '= =' } },
+                { weight: 0.7, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '- -' } },
+                // Mouth pattern (high weight - _ is the quintessential content mouth)
+                { weight: 0.9, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' _ ' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: '^_^' },
-                { $: 'rule:string-similarity', to: '=_=' },
-                { $: 'rule:string-similarity', to: '-_-' },
-                { $: 'rule:string-similarity', to: '~_~' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '^_^' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '=_=' } },
+                { weight: 0.9, rule: { $: 'rule:string-similarity', to: '-_-' } },
+                { weight: 0.8, rule: { $: 'rule:string-similarity', to: '~_~' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Mischief / Playfulness  
-        // Eyes: asymmetric or sideways glance
+        // Eyes: asymmetric or sideways glance — primary
         // ─────────────────────────────────────────────────────────────────
         mischief: {
             $: 'rule:balance',
             children: [
-                // Sideways glance patterns
-                { $: 'rule:string-similarity', mirror: true, ignoreCharacter: ' ', to: '< <' },
-                { $: 'rule:string-similarity', mirror: true, ignoreCharacter: ' ', to: '> >' },
+                // Sideways glance patterns (primary indicator)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', mirror: true, ignoreCharacter: ' ', to: '< <' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', mirror: true, ignoreCharacter: ' ', to: '> >' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: ';>' },
-                { $: 'rule:string-similarity', to: '<;' },
-                { $: 'rule:string-similarity', to: '>;<' },
+                { weight: 0.8, rule: { $: 'rule:string-similarity', to: ';>' } },
+                { weight: 0.8, rule: { $: 'rule:string-similarity', to: '<;' } },
+                { weight: 0.7, rule: { $: 'rule:string-similarity', to: '>;<' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Deadpan / Stoic
-        // Eyes: - = (flat, expressionless)
-        // Mouth: _ . (minimal)
+        // Eyes: - = (flat, expressionless) — primary
+        // Mouth: _ . (minimal) — reinforces
         // ─────────────────────────────────────────────────────────────────
         deadpan: {
             $: 'rule:balance',
             children: [
-                // Eye patterns (flat eyes)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '- -' },
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '= =' },
-                // Mouth pattern (minimal . mouth)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' . ' },
+                // Eye patterns (high weight - flat eyes are primary)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '- -' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '= =' } },
+                // Mouth pattern (medium weight - minimal mouth reinforces)
+                { weight: 0.7, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' . ' } },
+                { weight: 0.5, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' _ ' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: '-_-' },
-                { $: 'rule:string-similarity', to: '=_=' },
-                { $: 'rule:string-similarity', to: '._.' },
-                { $: 'rule:string-similarity', to: '-.-' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '-_-' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '=_=' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '._.' } },
+                { weight: 0.9, rule: { $: 'rule:string-similarity', to: '-.-' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Softness / Gentleness
-        // Mouth: ~ (wavy, gentle)
+        // Mouth: ~ (wavy, gentle) — primary
         // ─────────────────────────────────────────────────────────────────
         softness: {
             $: 'rule:balance',
             children: [
-                // Mouth pattern (~ = gentle/soft)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' ~ ' },
+                // Mouth pattern (primary indicator)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' ~ ' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: '~_~' },
-                { $: 'rule:string-similarity', to: '^~^' },
-                { $: 'rule:string-similarity', to: 'u~u' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '~_~' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '^~^' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'u~u' } },
             ]
         },
 
         // ─────────────────────────────────────────────────────────────────
         // Distress / Overwhelmed
-        // Eyes: x X (crossed out, can't cope)
+        // Eyes: x X (crossed out, can't cope) — primary
         // ─────────────────────────────────────────────────────────────────
         distress: {
             $: 'rule:balance',
             children: [
-                // Eye pattern (x eyes = overwhelmed)
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'x x' },
-                { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'X X' },
+                // Eye pattern (primary indicator)
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'x x' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: 'X X' } },
+                { weight: 0.9, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: '@ @' } },
                 // Specific combinations
-                { $: 'rule:string-similarity', to: 'x_x' },
-                { $: 'rule:string-similarity', to: 'X_X' },
-                { $: 'rule:string-similarity', to: 'x.x' },
-                { $: 'rule:string-similarity', to: '@_@' },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'x_x' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'X_X' } },
+                { weight: 0.9, rule: { $: 'rule:string-similarity', to: 'x.x' } },
+                { weight: 1.0, rule: { $: 'rule:string-similarity', to: '@_@' } },
             ]
         },
     }

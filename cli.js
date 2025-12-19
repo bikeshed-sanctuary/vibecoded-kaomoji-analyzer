@@ -24,9 +24,30 @@ const ruleHandlers = {
     'rule:balance': (rule, input) => {
         if (!rule.children || rule.children.length === 0) return 0;
         
-        const scores = rule.children.map(child => evaluateRule(child, input));
-        // Take the maximum score among children (best match wins)
-        return Math.max(...scores);
+        // Compute weighted sum of all child scores
+        let weightedSum = 0;
+        
+        for (const child of rule.children) {
+            // Children can be either:
+            // - { rule: {...}, weight: number } — weighted entry
+            // - { $: 'rule:...', ... } — bare rule (weight defaults to 1)
+            if (child.rule) {
+                const score = evaluateRule(child.rule, input);
+                const weight = child.weight ?? 1;
+                weightedSum += score * weight;
+            } else {
+                // Bare rule, weight = 1
+                weightedSum += evaluateRule(child, input);
+            }
+        }
+        
+        // Apply sigmoid activation (like a neural network node)
+        // - center: weighted sum needed for 50% confidence
+        // - steepness: how sharply confidence rises
+        const center = rule.center ?? 1.0;
+        const steepness = rule.steepness ?? 3;
+        
+        return sigmoid(weightedSum, center, steepness);
     },
 
     'rule:any': (rule, input) => {
@@ -55,6 +76,10 @@ const ruleHandlers = {
         const target = rule.to;
         const ignore = rule.ignoreCharacter || null;
         
+        // Minimum threshold: scores below this are treated as 0
+        // This prevents noise from unrelated strings accumulating
+        const minThreshold = rule.minThreshold ?? 0.5;
+        
         // Direct similarity
         let score = stringSimilarity(input, target, ignore);
         
@@ -65,9 +90,34 @@ const ruleHandlers = {
             score = Math.max(score, mirrorScore);
         }
         
-        return score;
+        // Apply threshold: if below minimum, return 0 (no signal)
+        return score >= minThreshold ? score : 0;
     },
 };
+
+// ============================================================================
+// Activation Functions
+// ============================================================================
+
+/**
+ * Sigmoid activation function.
+ * Maps any real number to (0, 1), useful for converting weighted sums to confidence.
+ * 
+ * @param x - The input value (e.g., weighted sum of scores)
+ * @param center - The x value where sigmoid returns 0.5 (default: 1.0)
+ * @param steepness - How sharply the curve rises (default: 3)
+ * 
+ * With default params (center=1.0, steepness=3):
+ *   x=0.0 → ~5%     (no signal)
+ *   x=0.5 → ~18%    (weak signal)
+ *   x=1.0 → 50%     (one full match = threshold)
+ *   x=1.5 → ~82%    (strong match)
+ *   x=2.0 → ~95%    (multiple strong signals)
+ *   x=2.5 → ~99%    (very strong)
+ */
+function sigmoid(x, center = 1.0, steepness = 3) {
+    return 1 / (1 + Math.exp(-steepness * (x - center)));
+}
 
 // ============================================================================
 // String Utilities

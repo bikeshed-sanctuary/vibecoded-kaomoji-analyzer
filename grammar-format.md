@@ -114,19 +114,53 @@ Rules in the `meanings` and `detection` sections use the `rule:` prefix to decla
 
 ### `rule:balance`
 
-Combines multiple child rules, returning the maximum score among them.
+Combines multiple child rules with optional weights, using a **sigmoid activation** (like a neural network node) to produce nuanced confidence scores.
 
 ```javascript
 {
     $: 'rule:balance',
-    children: [ /* child rules */ ]
+    center: 1.0,      // optional: weighted sum for 50% confidence (default: 1.0)
+    steepness: 3,     // optional: how sharply confidence rises (default: 3)
+    children: [
+        // Weighted entry: { weight, rule }
+        { weight: 1.0, rule: { $: 'rule:string-similarity', to: 'UwU' } },
+        { weight: 0.3, rule: { $: 'rule:string-similarity', ignoreCharacter: ' ', to: ' w ' } },
+        
+        // Bare rule (weight defaults to 1)
+        { $: 'rule:string-similarity', to: '^_^' },
+    ]
 }
 ```
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `$` | `'rule:balance'` | Rule type identifier |
-| `children` | `array` | Child rules to combine (returns max score) |
+| `children` | `array` | Child entries (weighted or bare rules) |
+| `center` | `number` | Optional. Weighted sum needed for 50% confidence (default: 1.0) |
+| `steepness` | `number` | Optional. How sharply the sigmoid rises (default: 3) |
+
+**Child entry format:**
+
+Each child can be either:
+- **Weighted entry**: `{ weight: number, rule: {...} }` — score is multiplied by weight
+- **Bare rule**: `{ $: 'rule:...', ... }` — weight defaults to 1
+
+**Scoring (neural network style):**
+
+1. Compute weighted sum: `Σ(score × weight)`
+2. Apply sigmoid activation: `1 / (1 + e^(-steepness × (sum - center)))`
+
+With default params (center=1.0, steepness=3):
+- sum=0.0 → **~5%** (no signal)
+- sum=0.5 → **~18%** (weak match)
+- sum=1.0 → **50%** (one full-weight match)
+- sum=1.5 → **~82%** (strong match)
+- sum=2.0 → **~95%** (multiple signals reinforce)
+
+**Why sigmoid?**
+- Multiple matching rules **reinforce** each other (unlike max)
+- Weak partial matches don't accumulate into false positives (unlike average)
+- Produces nuanced confidence scores instead of many 100%s
 
 ### `rule:any`
 
@@ -179,6 +213,7 @@ Matches patterns using fuzzy string comparison. Returns a score based on Levensh
 | `to` | `string` | Target pattern to match against |
 | `ignoreCharacter` | `string` | Optional. Positions with this character are spacers that don't count in comparison |
 | `mirror` | `boolean` | Optional. Also test horizontally mirrored pattern |
+| `minThreshold` | `number` | Optional. Scores below this are treated as 0 (default: 0.5). Prevents noise accumulation |
 
 **ignoreCharacter example:**
 
